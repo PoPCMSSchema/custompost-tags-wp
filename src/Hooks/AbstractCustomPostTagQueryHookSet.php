@@ -7,6 +7,7 @@ namespace PoPCMSSchema\CustomPostTagsWP\Hooks;
 use PoP\Root\App;
 use PoP\Root\Hooks\AbstractHookSet;
 use PoPCMSSchema\CustomPostsWP\TypeAPIs\AbstractCustomPostTypeAPI;
+use WP_Term;
 
 abstract class AbstractCustomPostTagQueryHookSet extends AbstractHookSet
 {
@@ -20,7 +21,12 @@ abstract class AbstractCustomPostTagQueryHookSet extends AbstractHookSet
         );
     }
 
-    public function convertCustomPostsQuery($query, array $options): array
+    /**
+     * @return array<string,mixed>
+     * @param array<string,mixed> $query
+     * @param array<string,mixed> $options
+     */
+    public function convertCustomPostsQuery(array $query, array $options): array
     {
         if (isset($query['tag-ids'])) {
             $query['tag__in'] = $query['tag-ids'];
@@ -40,7 +46,10 @@ abstract class AbstractCustomPostTagQueryHookSet extends AbstractHookSet
 
         return $query;
     }
-    private function convertPostQuerySpecialCases(&$query): void
+    /**
+     * @param array<string,mixed> $query
+     */
+    private function convertPostQuerySpecialCases(array &$query): void
     {
         // If both "tag" and "tax_query" were set, then the filter will not work for tags
         // Instead, what it requires is to create a nested taxonomy filtering inside the tax_query,
@@ -51,7 +60,11 @@ abstract class AbstractCustomPostTagQueryHookSet extends AbstractHookSet
             $tag_slugs = [];
             if (isset($query['tag_id'])) {
                 foreach (explode(',', $query['tag_id']) as $tag_id) {
+                    /** @var WP_Term|null */
                     $tag = get_tag((int) $tag_id);
+                    if ($tag === null) {
+                        continue;
+                    }
                     $tag_slugs[] = $tag->slug;
                 }
             }
